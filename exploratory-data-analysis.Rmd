@@ -1,0 +1,177 @@
+---
+title: "Exploratory Data Analysis for PROJECT"
+output: html_notebook
+---
+Introduction: I am interested in exploring in understanding the results of the City of Seattle's participatory budgeting initiative, "Your Voice, Your Choice". In particular, I am interested if there are any common themes among the projects that were ultimately selected for funding. The variable of interest is "Project Status". I will also explore "Average Score", "Project Type", and "Neighborhood".
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+---
+1. Retrieve data from GitHub repo:
+```{r}
+library(RCurl)
+
+data <-
+read.csv(text=getURL("https://raw.githubusercontent.com/katrinae-uw/data/master/Your_Voice_Your_Choice_Master_List_of_All_Projects_With_Scores.csv"))
+```
+
+```{r}
+is.data.frame(data)
+```
+
+My variable of interest is reading as a factor variable with levels.
+```{r}
+str(data)
+```
+
+I'm curious what to the see the frequency for each of the values of "Project Status".
+```{r}
+prop.table(table(data$Project.Status))
+```
+
+Verifying the mode
+```{r}
+distribution=table(data$Project.Status)
+modeCount=max(distribution)
+mode=distribution[distribution==modeCount]
+names(mode)
+```
+
+Creating the getMode function
+```{r}
+getMode=function(aColumn){
+  freqTable=table(aColumn)
+  maxFrequency=max(freqTable)
+  names(freqTable[freqTable==maxFrequency])
+}
+```
+
+Setting the variable and confirming the mode with the new getMode function
+```{r}
+var=data$Project.Status
+getMode(var)
+```
+
+Plotting the variable
+```{r}
+barplot(table(var),las=2)
+```
+
+I'm also curious about "Average Score", which is a numerical measure variable, but when I check I see it is being read as a factor with levels.
+```{r}
+str(data)
+```
+
+There must be some non number values for some observations. So, I need to make a new column forcing all values to be numeric, but because the factors were with levels I need to first force it into characters. So, I need to remember to first read my data to be read as stringsasFractos=FALSE. I called this column "Average.Numeric". I saw that this new column included the value "NA". Then I created a subset of my data and called it data.sub, to include all values when NA is FALSE.
+```{r}
+head(data)
+class(data$Average.Score)
+?is.numeric
+is.numeric(data$Average.Score)
+as.numeric(data$Average.Score)
+data$Average.Numeric=as.numeric(as.character(data$Average.Score))
+data$Average.Numeric
+data.sub=data[is.na(data$Average.Numeric) == FALSE,]
+data.sub$Average.Numeric
+```
+
+Now, I can explore my data.
+```{r}
+summary(data.sub$Average.Numeric)
+```
+
+The mean and median are fairly close, so I wonder what my distribution looks like.
+```{r}
+hist(data.sub$Average.Numeric)
+```
+
+It doesn't quite look normal, so I'll look at the skewness.
+```{r}
+library(moments)
+skewness(data.sub$Average.Numeric)
+```
+
+I'm curious to see the relationship between Project Status and Average Scores.
+```{r}
+prop.table(table(data.sub$Project.Status,data.sub$Average.Numeric))
+```
+
+That's a lot to look at. I'd like to the mean of the Average.Numeric for each of the categories of Project.Status.
+```{r}
+aggregate(data.sub$Average.Numeric,list(data.sub$Project.Status),median)
+```
+This is interesting because the median for "On Ballot, Not Funded" is the same as for "Funded for 2018 Implementation". So, voters aren't necessarily voting for projects with the highest scores, as assigned by the committee.
+
+I'm also curious about the variable "Neighborhood". This is a categorical, polytomous non-ordinal variable. I want to see the distribution of projects proposed by neighborhood.
+```{r}
+prop.table(table(data$Neighborhood))
+```
+
+There are many neighborhoods, so it is hard to confirm the mode by eye. Confirming the mode with the getMode function.
+```{r}
+var=data$Neighborhood
+getMode(var)
+```
+
+I also noticed in the frequency table that inconsistent spelling and capitalization caused one neighborhood to appear many times. For example there is "Capitol Hill" and "Capitol HIll". I will need to clean that data.
+
+Plotting the variable
+```{r}
+barplot(table(var),las=2)
+```
+
+The bar plot is very hard to look at because of the large number of values. There are 160 levels in this factor variable. Perhaps I will look at the Council District which covers a larger area.
+```{r}
+var=data$Council.District.
+getMode(var)
+prop.table(table(data$Council.District.))
+barplot(table(var), las=2)
+```
+
+Just looking at the raw data, the variable "Project Type" looks like it might have been populated by the data owner, not the applicant, since the values look consistent. So, I want to know if there was a more common type of budget proposed.
+```{r}
+var=data$Project.Type
+prop.table(table(data$Project.Type))
+```
+
+It looks like "Crossing Improvements" may have the highest frequency. Confirming with the getMode function.
+```{r}
+getMode(var)
+```
+
+I'm curious if there is any relationship between Project Type and Project status. So, I'll look at a contingency table.
+```{r}
+table(data$Project.Status, data$Project.Type)
+```
+```{r}
+table(data$Project.Type, data$Project.Status)
+```
+
+The second crosstab looks a little more reasonable. I'll continue exploring this.
+```{r}
+library(gmodels)
+CrossTable(data$Project.Type,data$Project.Status,prop.t=F, prop.r=F, prop.c=F,prop.chisq=F)
+```
+
+It looks like there might be some observations without anything in the "Project Type" field. So, I'll need to clean this column of data as well. Trying a table:
+```{r}
+legendPlot=levels(as.factor(unique(data$Project.Type)))
+bartable = table(data$Project.Type,data$Project.Status)
+barplot(bartable, beside = TRUE,legend=legendPlot)
+```
+
+I'm going to have to figure out how to reposition the legend! I also tried the following:
+```{r}
+legendPlot=levels(as.factor(unique(data$Project.Type)))
+bartable = table(data$Project.Type,data$Project.Status)
+barplot(bartable, legend=legendPlot)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
