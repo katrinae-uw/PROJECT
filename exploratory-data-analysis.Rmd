@@ -1,6 +1,8 @@
 ---
 title: "Exploratory Data Analysis for PROJECT"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 Introduction: I am interested in exploring in understanding the results of the City of Seattle's participatory budgeting initiative, "Your Voice, Your Choice". In particular, I am interested if there are any common themes among the projects that were ultimately selected for funding. The variable of interest is "Project Status". I will also explore "Average Score", "Project Type", and "Neighborhood".
 
